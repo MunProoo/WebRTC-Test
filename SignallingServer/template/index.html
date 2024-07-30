@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+  <title>Realtime communication with WebRTC</title>
+
+  <link rel="stylesheet" href="/css/main.css" />
+
+</head>
+
+<body>
+
+  <h1>Realtime communication with WebRTC</h1>
+
+  <div id="videos">
+    <input id="roomName" type="text" value="방 이름"><input id="sender" type="button" value="입장" onclick="joinRoom()">
+    <tab> <input id="sender" type="button" value="퇴장" onclick="exitRoom()"></tab>
+    <br>
+    <video id="localVideo" autoplay muted playsinline width="300" height="300"></video>
+    <video id="remoteVideo" autoplay playsinline width="300" height="300"></video><br>
+  </div>
+
+  <!-- <div id="remoteVideos">
+    Video From Remote Peers <br>
+  </div> -->
+
+  <!-- This file is automatically added/served when running "node index.js". -->
+  <!-- <script src="/socket.io/socket.io.js"></script> -->
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <!-- <script src="js/main.js"></script> -->
+  <script src="js/main copy.js"></script>
+
+</body>
+
+</html>
