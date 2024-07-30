@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+    <title>Demo WebRTC Signalling </title>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <!-- <link rel='stylesheet' type='text/css' media='screen' href='main.css'> -->
+    <script src='main.js'></script>
+</head>
+<body>
+  <h1>Communication between the local PC and Signaling Server</h1>  
+  <h3>ICE Connection States</h3>
+  <div id="iceConnectionStates"></div>
+
+  <h3>InBound DataChannel Message</h3>
+  <div id="inboundDataChannelMessage"></div>
+
+</body>
+
+<script>
+    let pc = new RTCPeerConnection();
+    let dc = pc.createDataChannel('data');
+
+    dc.onmessage = event => {
+        let el = document.createElement('p');
+        el.appendChild(document.createTextNode(event.data));
+
+        document.getElementById('inboundDataChannelMessage').appendChild(el);
+    }
+
+    pc.oniceconnectionstatechange = () => {
+        let el = document.createElement('p');
+        el.appendChild(document.createTextNode(pc.iceConnectionState));
+
+        document.getElementById('iceConnectionStates').appendChild(el);
+    }
+
+    pc.createOffer().then(offer => {
+        pc.setLocalDescription(offer); // 자신의 SDP 생성
+
+        // HTTP METHOD를 통해서 연결 요청 전달
+        return fetch('/doSignalling', {
+            method: 'post',
+            headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json'
+            },
+            body:JSON.stringify(offer)
+        })
+    }) // 시그널링 서버의 응답 처리 과정
+    .then(res => res.json())  // 시그널링 서버로부터 받은 응답을 JSON 형식으로 파싱
+    .then(res => { 
+        pc.setRemoteDescription(res); // 파싱된 응답을 원격 peerConnection으로 설정 -> p2p 연결 준비 완료
+    })
+    .catch(alert) // 에러 처리 
+</script>
+
+</html>
