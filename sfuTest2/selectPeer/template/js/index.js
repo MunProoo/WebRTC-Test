@@ -2,6 +2,7 @@
 
 var pcConfig = {
     'iceServers': [{
+    // 'urls': 'turn:211.207.68.244:3478',
     'urls': 'turn:192.168.30.186:3478',
     'username':'foo',
     'credential' :'bar'
@@ -265,8 +266,13 @@ function appendTerminalIDs(trackList) {
   var el = document.getElementById('terminal_ids');
   el.options.length = 0; // 기존 옵션 전부 삭제
 
+  var option = document.createElement('option');
+  option.value = "";
+  option.innerText = "==선택없음==";
+  el.appendChild(option);
+
   trackList.forEach(terminalID => {
-    var option = document.createElement('option');
+    option = document.createElement('option');
     option.value = terminalID;
     option.innerText = terminalID;
     el.appendChild(option);
