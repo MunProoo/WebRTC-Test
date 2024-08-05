@@ -11,18 +11,20 @@
   </head>
   <body>
     <br><br>
-    <b><output>자신의 단말기 아이디 : </output><input id="my_terminal_id" type="text" /></b>
+    <b><output>내 아이디 : </output><input id="my_terminal_id" type="text" /></b>
     <input type="button" value="서버와 연결 시작" onclick="createConnection()" /><p></p>
+    <p><input type="button" value="화면 공유" onclick="createConnection()" /></p><br><br>
       <b><label for="terminal_ids">모니터링 하고싶은 단말기</b><br>
         <select name="terminal_ids" id="terminal_ids" multiple onchange="selectTerminal(this)">
           <option value="">==선택없음==</option>
         </select>
       </label>
     <h3> Local Video </h3>
-    <video id="localVideo" width="160" height="120" autoplay muted></video> <br />
+    <video id="localVideo" width="300" height="250" autoplay muted controls></video>
+    <!-- <video id="localDisplay" width="160" height="120" autoplay muted controls></video> <br /> -->
 
-    <h3> Remote Video </h3>
-    <div id="remoteVideos"></div> <br />
+    <h3> Remote Videos </h3>
+    <div id="remoteVideos" style="display: flex; flex-wrap: wrap;"></div> <br />
 
     <div id = "chat">
         <div class="wrap" id="chat_background">

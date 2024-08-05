@@ -91,6 +91,16 @@ func websocketHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// 화면도 공유할 거라면, 트랜시버 추가해줘야함.
+	for _, typ := range []webrtc.RTPCodecType{webrtc.RTPCodecTypeVideo, webrtc.RTPCodecTypeAudio} {
+		if _, err := peerConnection.AddTransceiverFromKind(typ, webrtc.RTPTransceiverInit{
+			Direction: webrtc.RTPTransceiverDirectionRecvonly,
+		}); err != nil {
+			log.Print(err)
+			return
+		}
+	}
+
 	// dataChannel 생성
 	dataChannel, err := peerConnection.CreateDataChannel("chat", nil)
 	if err != nil {

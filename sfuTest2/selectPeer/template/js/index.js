@@ -15,6 +15,10 @@ let terminalID;
 let trackMap = new Map();
 let receiveChannel;
 
+let webCamStream;
+let displayStream;
+var ws;
+
 function createConnection() {
   terminalID = document.getElementById('my_terminal_id').value;
   if(terminalID == "") {
@@ -22,25 +26,36 @@ function createConnection() {
     return;
   }
 
-  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-  .then(stream => {
+  // navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+  const getWebCamStream = navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(stream => {
+    webCamStream = stream;
+  });
+  // const getDisplayStream =navigator.mediaDevices.getDisplayMedia({ video: true, audio: false }).then(stream => {
+  //   displayStream = stream;
+  // });
+
+  // 두 스트림을 다 받고난 후에 실행
+  // Promise.all([getWebCamStream, getDisplayStream]).then(() => {
+  Promise.all([getWebCamStream]).then(() => {
     pc = new RTCPeerConnection(pcConfig);
     pc.ontrack = handleOnTrack;
 
     handleDataChannel();
 
-    document.getElementById('localVideo').srcObject = stream
+    document.getElementById('localVideo').srcObject = webCamStream;
+    // document.getElementById('localDisplay').srcObject = displayStream;
 
-    stream.getTracks().forEach(track => pc.addTrack(track, stream))
+    webCamStream.getTracks().forEach(track => pc.addTrack(track, webCamStream))
+    // displayStream.getTracks().forEach(track => pc.addTrack(track, displayStream))
 
     var address = window.location.host;
-    var ws = new WebSocket('wss://'+address+'/ws');
+    ws = new WebSocket('wss://'+address+'/ws');
     pc.onicecandidate = e => {
-    if (!e.candidate) {
-        return
-    }
+      if (!e.candidate) {
+          return
+      }
 
-    ws.send(JSON.stringify({event: 'candidate', data: JSON.stringify(e.candidate)}))
+      ws.send(JSON.stringify({event: 'candidate', data: JSON.stringify(e.candidate)}))
     }
 
     ws.onclose = function(evt) {
@@ -53,38 +68,16 @@ function createConnection() {
     }
 
     ws.onmessage = function(evt) {
-      let msg = JSON.parse(evt.data)
-      if (!msg) {
-          return console.log('failed to parse msg')
-      }
-
-      switch (msg.event) {
-        case 'offer':
-        let offer = JSON.parse(msg.data)
-        if (!offer) {
-            return console.log('failed to parse answer')
-        }
-        pc.setRemoteDescription(offer)
-        pc.createAnswer().then(answer => {
-            pc.setLocalDescription(answer)
-            ws.send(JSON.stringify({event: 'answer', data: JSON.stringify(answer)}))
-        })
-        return
-
-        case 'candidate':
-        let candidate = JSON.parse(msg.data)
-        if (!candidate) {
-            return console.log('failed to parse candidate')
-        }
-
-        pc.addIceCandidate(candidate)
-      }
+      let msg = JSON.parse(evt.data);
+      handleWebsocketMessage(msg);
     }
-
     ws.onerror = function(evt) {
     console.log("ERROR: " + evt.data)
     }
-  }).catch(window.alert)
+  }).catch(err => window.alert(err));
+
+  
+
 }
 
 
@@ -100,17 +93,6 @@ function handleOnTrack(event) {
   var label = document.getElementById(stream.id);
   el.srcObject = stream;
 
-  // let el = document.createElement(event.track.kind);
-  // el.srcObject = event.streams[0];
-  // el.autoplay = true;
-  // el.controls = true;
-  // el.width = 160;
-  // el.height = 120;
-  // document.getElementById('remoteVideos').appendChild(el)
-
-  // let label = document.createElement('div');
-  // label.id = event.streams[0].id;
-  // document.getElementById('remoteVideos').appendChild(label);
 
   event.track.onmute = function(event) {
     el.play()
@@ -246,6 +228,7 @@ function showChattingMessage(event) {
 }
 
 function createVideo(msg) {
+  let bg = document.createElement('div');
   let label = document.createElement('div');
   label.id = msg.streamID;
   label.innerText = msg.terminalID;
@@ -255,11 +238,14 @@ function createVideo(msg) {
   el.id = 'video-'+msg.streamID;
   el.autoplay = true;
   el.controls = true;
-  el.width = 160;
-  el.height = 120;
+  // el.width = 160;
+  el.width = 300;
+  // el.height = 120;
+  el.height = 250;
 
-  document.getElementById('remoteVideos').appendChild(label);
-  document.getElementById('remoteVideos').appendChild(el)
+  bg.appendChild(label);
+  bg.appendChild(el)
+  document.getElementById('remoteVideos').appendChild(bg);
 }
 
 function appendTerminalIDs(trackList) {
@@ -291,4 +277,32 @@ function selectTerminal(e) {
   }
   console.log('선택한 단말기 : ' + selectedValue);
   receiveChannel.send(JSON.stringify({array:selectedValue, type:"trackOffer"}));
+}
+
+function handleWebsocketMessage(msg) {
+  if (!msg) {
+    return console.log('failed to parse msg')
+  }
+
+  switch (msg.event) {
+    case 'offer':
+    let offer = JSON.parse(msg.data)
+    if (!offer) {
+        return console.log('failed to parse answer')
+    }
+    pc.setRemoteDescription(offer)
+    pc.createAnswer().then(answer => {
+        pc.setLocalDescription(answer)
+        ws.send(JSON.stringify({event: 'answer', data: JSON.stringify(answer)}))
+    })
+    return
+
+    case 'candidate':
+    let candidate = JSON.parse(msg.data)
+    if (!candidate) {
+        return console.log('failed to parse candidate')
+    }
+
+    pc.addIceCandidate(candidate)
+  }
 }
