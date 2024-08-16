@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -50,27 +51,28 @@ func initInformation(c *threadSafeWriter) (terminalID string, terminalIDs map[st
 }
 
 func handleWebSocketMessage(message *websocketMessage, peerConnection *webrtc.PeerConnection) {
+	// fmt.Println(message.Event, message.Data)
 	switch message.Event {
 	case "candidate":
 		candidate := webrtc.ICECandidateInit{}
 		if err := json.Unmarshal([]byte(message.Data), &candidate); err != nil {
-			log.Println(err)
+			fmt.Println(err)
 			return
 		}
 
 		if err := peerConnection.AddICECandidate(candidate); err != nil {
-			log.Println(err)
+			fmt.Println(err)
 			return
 		}
 	case "answer":
 		answer := webrtc.SessionDescription{}
 		if err := json.Unmarshal([]byte(message.Data), &answer); err != nil {
-			log.Println(err)
+			fmt.Println(err)
 			return
 		}
 
 		if err := peerConnection.SetRemoteDescription(answer); err != nil {
-			log.Println(err)
+			fmt.Println(err)
 			return
 		}
 	}

@@ -14,11 +14,13 @@ type websocketMessage struct {
 	Data  string `json:"data"`
 }
 
-type chatMessage struct {
+type dataChannelMessage struct {
 	Type       string   `json:"type"`
-	TerminalID string   `json:"terminalID"`
+	TerminalID string   `json:"terminalID"` // 본인 아이디
 	Message    string   `json:"message"`
 	Array      []string `json:"array"`
+	CallerID   string   `json:"callerID"`
+	ReceiverID string   `json:"receiverID"`
 }
 
 type peerConnectionState struct {
@@ -26,5 +28,6 @@ type peerConnectionState struct {
 	websocket       *threadSafeWriter
 	dataChannel     *webrtc.DataChannel
 	dataChannelFlag bool // 데이터채널이 열린다음에 트랙 추가하도록 (메타데이터 전송의 이유때문에)
-	peerID          string
+	terminalID      string
+	srcAddr         string // 요청 IP
 }

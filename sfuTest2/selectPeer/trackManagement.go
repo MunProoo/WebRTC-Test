@@ -4,7 +4,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/pion/webrtc/v4"
@@ -30,10 +29,16 @@ func addTrack(t *webrtc.TrackRemote, terminalID string) *webrtc.TrackLocalStatic
 
 	trackLocals[t.ID()] = trackLocalRTP
 
-	// Track이 추가되었으니 알려준다.
+	// Track이 추가되었으니 알려준다. (Audio는 제외)
 	for _, pcState := range peerConnections {
-		if pcState.dataChannelFlag {
+		if pcState.dataChannelFlag && t.Kind().String() == "video" {
+			fmt.Println("track added from : ", terminalID)
+			// TrackList 전달
 			data := makeTrackList()
+			pcState.dataChannel.Send(data)
+
+			// PeerList 전달
+			data = makePeerList()
 			pcState.dataChannel.Send(data)
 		}
 	}
@@ -53,7 +58,12 @@ func removeTrack(t *webrtc.TrackLocalStaticRTP, terminalIDs map[string]struct{})
 	// Track이 삭제되었으니 알려준다.
 	for _, pcState := range peerConnections {
 		if pcState.dataChannelFlag {
+			// TrackList 전달
 			data := makeTrackList()
+			pcState.dataChannel.Send(data)
+
+			// PeerList 전달
+			data = makePeerList()
 			pcState.dataChannel.Send(data)
 		}
 	}
@@ -71,6 +81,8 @@ func SignalPeerConnections(terminalIDs map[string]struct{}, peerID string) {
 		listLock.Unlock()
 		dispatchKeyFrame()
 	}()
+
+	fmt.Println(peerID + " 트랙 동기화 중")
 
 	// 트랙 상태 동기화. 피어에게 새로운 offer 생성하여 전송
 	attemptSync := func(peerID string) (tryAgain bool) {
@@ -163,7 +175,7 @@ func (pcs *peerConnectionState) TrackManagement(key string, terminalIDs map[stri
 				}
 				metaData, err := json.Marshal(message)
 				if err != nil {
-					log.Println(err)
+					fmt.Println(err)
 					return false
 				}
 				// ICE 연결 끊기면 바로 connection, dataChannel 바로 삭제하니까 예외처리 해야함
@@ -205,4 +217,60 @@ func (pcs *peerConnectionState) TrackManagement(key string, terminalIDs map[stri
 		return true
 	}
 	return false
+}
+
+// 기존 트랙을 삭제하고, 해당 트랙을 가지고 있던 Connection에 새로 offer를 날려 동기화한다.
+// 재연결 시도를 할 경우, 기존에 Peer가 수신하고있던 트랙을 없애버리기 위함.!
+func removeLocalTrackAndReconnect(oldPcs peerConnectionState) {
+	// 기존 트랙 삭제
+	for _, receiver := range oldPcs.peerConnection.GetReceivers() {
+		if receiver.Tracks() == nil {
+			continue
+		}
+		delete(trackLocals, receiver.Track().ID())
+	}
+
+	for _, pcs := range peerConnections {
+		pcs.removeOffer()
+	}
+
+}
+
+func (pcs *peerConnectionState) removeOffer() {
+	// 송신자 : 서버가 로컬 트랙을 원격 Peer로 전송
+	// 이미 보내고 있는 Track의 ID 체크
+	for _, sender := range pcs.peerConnection.GetSenders() {
+		if sender.Track() == nil {
+			continue
+		}
+
+		// ICE 연결 끊긴 Peer의 트랙 제거
+		if _, ok := trackLocals[sender.Track().ID()]; !ok {
+			if err := pcs.peerConnection.RemoveTrack(sender); err != nil {
+				return
+			}
+		}
+	}
+
+	offer, err := pcs.peerConnection.CreateOffer(nil)
+	if err != nil {
+		return
+	}
+
+	if err = pcs.peerConnection.SetLocalDescription(offer); err != nil {
+		return
+	}
+
+	offerString, err := json.Marshal(offer)
+	if err != nil {
+		return
+	}
+
+	if err = pcs.websocket.WriteJSON(&websocketMessage{
+		Event: "offer",
+		Data:  string(offerString),
+	}); err != nil {
+		fmt.Println(err)
+		return
+	}
 }

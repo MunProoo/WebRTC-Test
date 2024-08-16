@@ -12,15 +12,19 @@
   <body>
     <br><br>
     <b><output>내 아이디 : </output><input id="my_terminal_id" type="text" /></b>
-    <input type="button" value="서버와 연결 시작" onclick="createConnection()" /><p></p>
-    <p><input type="button" value="화면 공유" onclick="createConnection()" /></p><br><br>
-      <b><label for="terminal_ids">모니터링 하고싶은 단말기</b><br>
+    <input type="button" value="서버와 연결 시작" onclick="createConnection()" />&nbsp;&nbsp;<input type="button" value="웹캠 없이 연결" onclick="NoCamConnection()" /><p></p>
+    <br><br>
+      <b><label for="peerList">Peer Connection List</b>&nbsp;&nbsp; <b><label for="terminal_ids">모니터링 하고싶은 단말기</b></b><br>
+        &nbsp;&nbsp;
+        <select name="peerList" id="peerList" style="width:110px" onchange="selectPeer(this)">
+          <option value="">==연결 없음==</option>
+        </select>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <select name="terminal_ids" id="terminal_ids" multiple onchange="selectTerminal(this)">
           <option value="">==선택없음==</option>
         </select>
       </label>
     <h3> Local Video </h3>
-    <video id="localVideo" width="300" height="250" autoplay muted controls></video>
+    <video id="localVideo" width="300" height="250" autoplay muted controls playsinline></video>
     <!-- <video id="localDisplay" width="160" height="120" autoplay muted controls></video> <br /> -->
 
     <h3> Remote Videos </h3>
